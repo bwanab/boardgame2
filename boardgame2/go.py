@@ -1,7 +1,7 @@
 import collections
 
 import numpy as np
-import gym.spaces as spaces
+import gymnasium.spaces as spaces
 
 from .env import EMPTY, BLACK, WHITE
 from .env import BoardGameEnv

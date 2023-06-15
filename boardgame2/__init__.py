@@ -1,4 +1,6 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import (
+    register,
+)
 from .env import *
 from .reversi import *
 from .kinarow import *

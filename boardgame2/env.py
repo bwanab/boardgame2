@@ -3,8 +3,8 @@ import copy
 
 from six import StringIO
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 
 
 EMPTY = 0

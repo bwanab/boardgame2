@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import gym
+import gymnasium as gym
 
 import boardgame2
 
