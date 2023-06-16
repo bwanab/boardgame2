@@ -1,5 +1,6 @@
 import copy
 import itertools
+import numpy as np
 
 from .env import EMPTY
 from .env import BoardGameEnv
@@ -16,10 +17,10 @@ class ReversiEnv(BoardGameEnv):
     def reset(self, *, seed=None, return_info=True, options=None):
         super().reset(seed=seed, return_info=return_info, options=options)
 
-        x, y = (s // 2 for s in self.board.shape)
+        x, y = (s // 2 for s in self.board_shape)
         self.board[x - 1][y - 1] = self.board[x][y] = 1
         self.board[x - 1][y] = self.board[x][y - 1] = -1
-        next_state = self.board, self.player
+        next_state = self.board.reshape(self.board_size), self.player
         if return_info:
             return next_state, {}
         else:
@@ -37,11 +38,12 @@ class ReversiEnv(BoardGameEnv):
         valid : bool     whether the current action is a valid action
         """
         board, player = copy.deepcopy(state)
+        board = board.reshape(self.board_shape)
 
         if not is_index(board, action):
             return False
 
-        x, y = action
+        x, y = np.unravel_index(action, self.board_shape)
         if board[x, y] != EMPTY:
             return False
 
@@ -52,7 +54,9 @@ class ReversiEnv(BoardGameEnv):
                 xx, yy = x, y
                 for count in itertools.count():
                     xx, yy = xx + dx, yy + dy
-                    if not is_index(board, (xx, yy)):
+                    if xx < 0 or xx >= self.board_shape[0] or yy < 0 or yy >= self.board_shape[1]:
+                        break
+                    if not is_index(board, np.ravel_multi_index([xx, yy], self.board_shape)):
                         break
                     if board[xx, yy] == EMPTY:
                         break
@@ -75,8 +79,10 @@ class ReversiEnv(BoardGameEnv):
         next_state : (np.array, int)    next board and next player
         """
         board, player = copy.deepcopy(state)
+        board = board.reshape(self.board_shape)
+
         if self.is_valid(state, action):
-            x, y = action
+            x, y = np.unravel_index(action, self.board_shape)
             board[x, y] = player
             for dx in [-1, 0, 1]:  # loop on the 8 directions
                 for dy in [-1, 0, 1]:
@@ -85,7 +91,9 @@ class ReversiEnv(BoardGameEnv):
                     xx, yy = x, y
                     for count in itertools.count():
                         xx, yy = xx + dx, yy + dy
-                        if not is_index(board, (xx, yy)):
+                        if xx < 0 or xx >= self.board_shape[0] or yy < 0 or yy >= self.board_shape[1]:
+                            break
+                        if not is_index(board, np.ravel_multi_index([xx, yy], self.board_shape)):
                             break
                         if board[xx, yy] == EMPTY:
                             break
@@ -93,4 +101,4 @@ class ReversiEnv(BoardGameEnv):
                             for i in range(count+1):  # overwrite
                                 board[x + i * dx, y + i * dy] = player
                             break
-        return board, -player
+        return board.reshape(self.board_size), -player

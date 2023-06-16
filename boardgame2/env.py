@@ -49,9 +49,9 @@ def is_index(board: np.array, location: np.array) -> str:
     ----
     is_index : bool
     """
-    if len(location) != 2:
-        return False
-    x, y = location
+    # if len(location) != 2:
+    #     return False
+    x, y = np.unravel_index(location, board.shape)
     return x in range(board.shape[0]) and y in range(board.shape[1])
 
 
@@ -112,17 +112,16 @@ class BoardGameEnv(gym.Env):
                 in [EMPTY, BLACK, WHITE]}
 
         if isinstance(board_shape, int):
-            board_shape = (board_shape, board_shape)
-        assert len(board_shape) == 2  # invalid board shape
-        self.board = np.zeros(board_shape)
+            self.board_shape = (board_shape, board_shape)
+        assert len(self.board_shape) == 2  # invalid board shape
+        self.board = np.zeros(self.board_shape)
         assert self.board.size > 1  # Invalid board shape
 
-        observation_spaces = [
-                spaces.Box(low=-1, high=1, shape=board_shape, dtype=np.int8),
-                spaces.Box(low=-1, high=1, shape=(), dtype=np.int8)]
-        self.observation_space = spaces.Tuple(observation_spaces)
-        self.action_space = spaces.Box(low=-np.ones((2,)),
-                high=np.array(board_shape)-1, dtype=np.int8)
+        w,h = self.board_shape
+        self.board_size = w * h
+
+        self.observation_space = spaces.Box(low=-1, high=1, dtype=np.int8)
+        self.action_space = spaces.Discrete(64)
 
     def reset(self, *, seed=None, return_info=True, options=None):
         """Reset a new game episode. See gym.Env.reset()
@@ -139,7 +138,7 @@ class BoardGameEnv(gym.Env):
         """
         self.board = np.zeros_like(self.board, dtype=np.int8)
         self.player = BLACK
-        next_state = (self.board, self.player)
+        next_state = (self.board.reshape(self.board_size), self.player)
         if return_info:
             return next_state, {}
         else:
@@ -158,6 +157,7 @@ class BoardGameEnv(gym.Env):
         valid : bool
         """
         board, _ = state
+        board = board.reshape(self.board_shape)
         if not is_index(board, action):
             return False
         x, y = action
@@ -175,6 +175,7 @@ class BoardGameEnv(gym.Env):
         valid : np.array     current valid place for the player
         """
         board, _ = state
+        board = board.reshape(self.board_shape)
         valid = np.zeros_like(board, dtype=np.int8)
         for x in range(board.shape[0]):
             for y in range(board.shape[1]):
@@ -193,9 +194,10 @@ class BoardGameEnv(gym.Env):
         has_valid : bool
         """
         board = state[0]
+        board = board.reshape(self.board_shape)
         for x in range(board.shape[0]):
             for y in range(board.shape[1]):
-                if self.is_valid(state, np.array([x, y])):
+                if self.is_valid(state, np.ravel_multi_index([x, y], board.shape)):
                     return True
         return False
 
@@ -215,6 +217,7 @@ class BoardGameEnv(gym.Env):
             - env.EMPTY  The game is ended tie.
         """
         board, _ = state
+        board = board.reshape(self.board_shape)
         for player in [BLACK, WHITE]:
             if self.has_valid((board, player)):
                 return None
@@ -237,11 +240,12 @@ class BoardGameEnv(gym.Env):
         ValueError : location in action is not valid
         """
         board, player = state
+        board = board.reshape(self.board_shape)
         x, y = action
         if self.is_valid(state, action):
             board = copy.deepcopy(board)
             board[x, y] = player
-        return board, -player
+        return board.reshape(self.board_size), -player
 
     def next_step(self, state, action):
         """Get the next observation, reward, termination, and info.
@@ -289,7 +293,8 @@ class BoardGameEnv(gym.Env):
         """
         state = (self.board, self.player)
         next_state, reward, termination, info = self.next_step(state, action)
-        self.board, self.player = next_state
+        board, self.player = next_state
+        self.board = np.reshape(board, self.board_shape)
         return next_state, reward, termination, False, info
 
     def render(self, mode='human'):
