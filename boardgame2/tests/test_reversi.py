@@ -3,6 +3,7 @@ import pytest
 import gymnasium as gym
 
 import boardgame2
+from boardgame2.env import BoardGameEnv
 
 
 def test_reversi():
@@ -16,15 +17,22 @@ def test_reversi():
     actions = []
     while True:
         #env.render("human")
-        action = env.action_space.sample()
+        action = 0
+        while not env.is_valid(observation, action):
+            action = env.action_space.sample()
         #print("action = ", action)
+        obs = np.copy(observation[0])
         observation, reward, termination, truncated, info = env.step(action)
         #print(observation, reward, termination, info)
+        # if np.any(obs != observation[0]):
+        #     print(observation[0].reshape((8,8)))
+
         if termination:
             break
         else:
             actions.append(action)
-            #env.render("human")
+            print()
+            env.render()
         count += 1
 
     if count > 1:

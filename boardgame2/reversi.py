@@ -9,10 +9,10 @@ from .env import is_index
 
 class ReversiEnv(BoardGameEnv):
 
-    def __init__(self, board_shape=8, render_characters: str='+ox'):
+    def __init__(self, board_shape=8, render_characters: str='+ox', render_mode="human"):
         super().__init__(board_shape=board_shape,
             illegal_action_mode='resign', render_characters=render_characters,
-            allow_pass=False)  # reversi does not allow pass
+            allow_pass=False, render_mode=render_mode)  # reversi does not allow pass
 
     def reset(self, *, seed=None, return_info=True, options=None):
         super().reset(seed=seed, return_info=return_info, options=options)

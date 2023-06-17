@@ -51,6 +51,8 @@ def is_index(board: np.array, location: np.array) -> str:
     """
     # if len(location) != 2:
     #     return False
+    if location < 0:
+        return False
     x, y = np.unravel_index(location, board.shape)
     return x in range(board.shape[0]) and y in range(board.shape[1])
 
@@ -79,11 +81,11 @@ class BoardGameEnv(gym.Env):
     metadata = {"render_modes": ["ansi", "human"]}
     reward_range = (-1, 1)
 
-    PASS = np.array([-1, 0])
-    RESIGN = np.array([-1, -1])
+    PASS = -1
+    RESIGN = -2
 
     def __init__(self, board_shape, illegal_action_mode: str='resign',
-            render_characters: str='+ox', allow_pass: bool=True):
+            render_characters: str='+ox', allow_pass: bool=True, render_mode = "human"):
         """Create a board game.
 
         Parameters
@@ -122,6 +124,7 @@ class BoardGameEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=-1, high=1, dtype=np.int8)
         self.action_space = spaces.Discrete(64)
+        self.render_mode = render_mode
 
     def reset(self, *, seed=None, return_info=True, options=None):
         """Reset a new game episode. See gym.Env.reset()
@@ -264,7 +267,8 @@ class BoardGameEnv(gym.Env):
         """
         if not self.is_valid(state, action):
             action = self.illegal_equivalent_action
-        if np.array_equal(action, self.RESIGN):
+        if action == self.RESIGN:
+            state = (np.reshape(state[0], self.board_size), state[1])
             return state, -state[1], True, {}
         while True:
             state = self.get_next_state(state, action)
