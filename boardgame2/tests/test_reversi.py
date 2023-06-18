@@ -8,7 +8,7 @@ from boardgame2.env import BoardGameEnv
 
 def test_reversi():
     env = gym.make('Reversi-v0')
-    assert env.observation_space.shape == (1,)
+    assert env.observation_space.shape == (65,)
     assert env.action_space.n == 64
     #assert np.all(env.action_space.high == (7, 7))
 
@@ -21,7 +21,7 @@ def test_reversi():
         while not env.is_valid(observation, action):
             action = env.action_space.sample()
         #print("action = ", action)
-        obs = np.copy(observation[0])
+        obs = np.copy(observation)
         observation, reward, termination, truncated, info = env.step(action)
         #print(observation, reward, termination, info)
         # if np.any(obs != observation[0]):
@@ -31,8 +31,8 @@ def test_reversi():
             break
         else:
             actions.append(action)
-            print()
-            env.render()
+            # print()
+            # env.render()
         count += 1
 
     if count > 1:

@@ -18,9 +18,11 @@ class ReversiEnv(BoardGameEnv):
         super().reset(seed=seed, return_info=return_info, options=options)
 
         x, y = (s // 2 for s in self.board_shape)
-        self.board[x - 1][y - 1] = self.board[x][y] = 1
-        self.board[x - 1][y] = self.board[x][y - 1] = -1
-        next_state = self.board.reshape(self.board_size), self.player
+        board, player = self.board_player_from_state(self.board)
+        board[x - 1][y - 1] = board[x][y] = 1
+        board[x - 1][y] = board[x][y - 1] = -1
+        self.board[self.board_size] = player
+        next_state = self.board
         if return_info:
             return next_state, {}
         else:
@@ -37,8 +39,8 @@ class ReversiEnv(BoardGameEnv):
         ----
         valid : bool     whether the current action is a valid action
         """
-        board, player = copy.deepcopy(state)
-        board = board.reshape(self.board_shape)
+        
+        board, player = self.board_player_from_state(state)
 
         if not is_index(board, action):
             return False
@@ -78,12 +80,14 @@ class ReversiEnv(BoardGameEnv):
         ----
         next_state : (np.array, int)    next board and next player
         """
-        board, player = copy.deepcopy(state)
-        board = board.reshape(self.board_shape)
+
+        board, player = self.board_player_from_state(state)
+        # board = copy.deepcopy(board)
 
         if self.is_valid(state, action):
             x, y = np.unravel_index(action, self.board_shape)
             board[x, y] = player
+            self.board[self.board_size] = -player
             for dx in [-1, 0, 1]:  # loop on the 8 directions
                 for dy in [-1, 0, 1]:
                     if (dx, dy) == (0, 0):
@@ -101,4 +105,4 @@ class ReversiEnv(BoardGameEnv):
                             for i in range(count+1):  # overwrite
                                 board[x + i * dx, y + i * dy] = player
                             break
-        return board.reshape(self.board_size), -player
+        return np.array(board.reshape(self.board_size).tolist() + [-player], dtype=board.dtype)
