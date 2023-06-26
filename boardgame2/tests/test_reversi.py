@@ -17,12 +17,16 @@ def test_reversi():
     actions = []
     while True:
         #env.render("human")
-        action = 0
-        while not env.is_valid(observation, action):
-            action = env.action_space.sample()
+        # action = 0
+        # while not env.is_valid(observation, action):
+        #     action = env.action_space.sample()
+        action = env.action_space.sample()
         #print("action = ", action)
         obs = np.copy(observation)
-        observation, reward, termination, truncated, info = env.step(action)
+        reward = 0
+        while reward <= 0:
+            observation, reward, termination, truncated, info = env.step(action)
+            action = env.action_space.sample()
         #print(observation, reward, termination, info)
         # if np.any(obs != observation[0]):
         #     print(observation[0].reshape((8,8)))

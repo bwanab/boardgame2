@@ -37,23 +37,24 @@ def strfboard(board: np.array, render_characters: str='+ox', end: str='\n') -> s
     return s[:-len(end)]
 
 
-def is_index(board: np.array, location: np.array) -> str:
+def is_index(board: np.array, location) -> str:
     """Check whether a location is a valid index of the board
 
     Parameters:
     ----
-    board : np.array
-    location : np.array
+    board : np.array 2D
+    location : int 
 
     Returns
     ----
     is_index : bool
     """
-    # if len(location) != 2:
-    #     return False
-    if location < 0:
-        return False
-    x, y = np.unravel_index(location, board.shape)
+    if isinstance(location, int) or isinstance(location, np.integer):
+        if location < 0 or location >= board.size:
+            return False
+        x, y = np.unravel_index(location, board.shape)
+    else:
+        x, y = location
     return x in range(board.shape[0]) and y in range(board.shape[1])
 
 
@@ -75,6 +76,19 @@ def extend_board(board: np.array) -> np.array:
             np.rot90(np.flipud(board)), np.fliplr(board)])
     return boards
 
+shape_map = {65: (8,8), 37: (6,6), 17: (4,4)}
+
+def board_player_from_state(state):
+    board = state[0:state.size - 1].view().reshape(shape_map[state.size])
+    player = state[state.size - 1]
+    return board, player
+
+def state_from_board_player(board, player):
+    b = board.reshape(board.size).tolist()  # make it one dimensional
+    return np.array(b + [player], dtype=np.int8)
+
+def toggle_player(state):
+    state[state.size - 1] = -state[state.size - 1]
 
 class BoardGameEnv(gym.Env):
 
@@ -123,7 +137,7 @@ class BoardGameEnv(gym.Env):
         assert self.board.size > 1  # Invalid board shape
 
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.board_size + 1,), dtype=np.int8)
-        self.action_space = spaces.Discrete(self.board_size)
+        self.action_space = spaces.Discrete(self.board_size + 1, start=self.PASS)
         self.render_mode = render_mode
 
     def reset(self, *, seed=None, return_info=True, options=None):
@@ -139,13 +153,12 @@ class BoardGameEnv(gym.Env):
         ----
         next_state : (np.array, int)    next board and next player
         """
-        board = np.zeros(self.board_size, dtype=np.int8)
-        player = BLACK
-        next_state = np.array(board.tolist() + [player], dtype=np.int8)
+        self.board = np.zeros(self.board_size + 1, dtype=np.int8)
+        self.board[self.board_size] = BLACK
         if return_info:
-            return next_state, {}
+            return self.board, {}
         else:
-            return next_state
+            return self.board
 
     def board_player_from_state(self, state):
         board = state[0:self.board_size].view().reshape(self.board_shape)
@@ -166,7 +179,10 @@ class BoardGameEnv(gym.Env):
         """
         if not is_index(state, action):
             return False
-        x, y = np.unravel_index(action, self.board_shape)
+        if isinstance(action, int):
+            x, y = np.unravel_index(action, self.board_shape)
+        else:
+            x, y = action
         board, _ = self.board_player_from_state(state)
         return board[x, y] == EMPTY
 
@@ -187,6 +203,10 @@ class BoardGameEnv(gym.Env):
             for y in range(board.shape[1]):
                 valid[x, y] = self.is_valid(state, np.array([x, y]))
         return valid
+
+    def all_valid_actions(self, state):
+        a = self.get_valid(state).reshape(self.board_size)
+        return np.where(a == 1)[0]
 
     def has_valid(self, state) -> bool:
         """Check whether there are valid locations for current state.
@@ -275,8 +295,12 @@ class BoardGameEnv(gym.Env):
         while True:
             state = self.get_next_state(state, action)
             winner = self.get_winner(state)
+            # only black winners get scored for training:
             if winner is not None:
-                return state, winner, True, {}
+                if winner > 0:
+                    return state, winner, True, {}
+                else:
+                    return state, 0, True, {}
             if self.has_valid(state):
                 break
             action = self.PASS

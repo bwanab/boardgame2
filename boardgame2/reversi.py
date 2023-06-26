@@ -45,7 +45,11 @@ class ReversiEnv(BoardGameEnv):
         if not is_index(board, action):
             return False
 
-        x, y = np.unravel_index(action, self.board_shape)
+        if isinstance(action, int) or isinstance(action, np.integer):
+            x, y = np.unravel_index(action, self.board_shape)
+        else:
+            x, y = action
+
         if board[x, y] != EMPTY:
             return False
 
@@ -105,4 +109,7 @@ class ReversiEnv(BoardGameEnv):
                             for i in range(count+1):  # overwrite
                                 board[x + i * dx, y + i * dy] = player
                             break
+        else:
+            if action == self.PASS:
+                self.board[self.board_size] = -player
         return np.array(board.reshape(self.board_size).tolist() + [-player], dtype=board.dtype)
