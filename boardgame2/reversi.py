@@ -4,7 +4,7 @@ import numpy as np
 
 from .env import EMPTY
 from .env import BoardGameEnv
-from .env import is_index
+from .env import is_index, board_player_from_state
 
 
 class ReversiEnv(BoardGameEnv):
@@ -18,7 +18,7 @@ class ReversiEnv(BoardGameEnv):
         super().reset(seed=seed, return_info=return_info, options=options)
 
         x, y = (s // 2 for s in self.board_shape)
-        board, player = self.board_player_from_state(self.board)
+        board, player = board_player_from_state(self.board)
         board[x - 1][y - 1] = board[x][y] = 1
         board[x - 1][y] = board[x][y - 1] = -1
         self.board[self.board_size] = player
@@ -40,7 +40,7 @@ class ReversiEnv(BoardGameEnv):
         valid : bool     whether the current action is a valid action
         """
         
-        board, player = self.board_player_from_state(state)
+        board, player = board_player_from_state(state)
 
         if not is_index(board, action):
             return False
@@ -85,7 +85,7 @@ class ReversiEnv(BoardGameEnv):
         next_state : (np.array, int)    next board and next player
         """
 
-        board, player = self.board_player_from_state(state)
+        board, player = board_player_from_state(state)
         # board = copy.deepcopy(board)
 
         if self.is_valid(state, action):

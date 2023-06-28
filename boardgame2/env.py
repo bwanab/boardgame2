@@ -160,11 +160,6 @@ class BoardGameEnv(gym.Env):
         else:
             return self.board
 
-    def board_player_from_state(self, state):
-        board = state[0:self.board_size].view().reshape(self.board_shape)
-        player = state[self.board_size]
-        return board, player
-
     def is_valid(self, state, action) -> bool:
         """Check whether the action is valid for current state.
 
@@ -183,7 +178,7 @@ class BoardGameEnv(gym.Env):
             x, y = np.unravel_index(action, self.board_shape)
         else:
             x, y = action
-        board, _ = self.board_player_from_state(state)
+        board, _ = board_player_from_state(state)
         return board[x, y] == EMPTY
 
     def get_valid(self, state):
@@ -197,7 +192,7 @@ class BoardGameEnv(gym.Env):
         ----
         valid : np.array     current valid place for the player
         """
-        board, _ = self.board_player_from_state(state)
+        board, _ = board_player_from_state(state)
         valid = np.zeros_like(board, dtype=np.int8)
         for x in range(board.shape[0]):
             for y in range(board.shape[1]):
@@ -219,7 +214,7 @@ class BoardGameEnv(gym.Env):
         ----
         has_valid : bool
         """
-        board, _ = self.board_player_from_state(state)
+        board, _ = board_player_from_state(state)
         for x in range(board.shape[0]):
             for y in range(board.shape[1]):
                 if self.is_valid(state, np.ravel_multi_index([x, y], board.shape)):
@@ -241,7 +236,7 @@ class BoardGameEnv(gym.Env):
             - env.WHITE  The game is ended with the winner WHITE.
             - env.EMPTY  The game is ended tie.
         """
-        board,_ = self.board_player_from_state(state)
+        board,_ = board_player_from_state(state)
         s = copy.deepcopy(state)
         for player in [BLACK, WHITE]:
             s[self.board_size] = player
@@ -265,7 +260,7 @@ class BoardGameEnv(gym.Env):
         ----
         ValueError : location in action is not valid
         """
-        board, player = self.board_player_from_state(state)
+        board, player = board_player_from_state(state)
         x, y = np.unravel_index(action, self.board_shape)
         if self.is_valid(state, action):
             board = copy.deepcopy(board)
@@ -290,17 +285,18 @@ class BoardGameEnv(gym.Env):
         if not self.is_valid(state, action):
             action = self.illegal_equivalent_action
         if action == self.RESIGN:
-            _, player = self.board_player_from_state(state)
+            _, player = board_player_from_state(state)
             return state, -player, True, {}
         while True:
             state = self.get_next_state(state, action)
             winner = self.get_winner(state)
             # only black winners get scored for training:
             if winner is not None:
-                if winner > 0:
-                    return state, winner, True, {}
-                else:
-                    return state, 0, True, {}
+                return state, winner, True, {}
+                # if winner > 0:
+                #     return state, winner, True, {}
+                # else:
+                #     return state, 0, True, {}
             if self.has_valid(state):
                 break
             action = self.PASS
@@ -327,7 +323,7 @@ class BoardGameEnv(gym.Env):
     def render(self, mode='human'):
         """See gym.Env.render()."""
         outfile = StringIO() if mode == 'ansi' else sys.stdout
-        board, _ = self.board_player_from_state(self.board)
+        board, _ = board_player_from_state(self.board)
         s = strfboard(board, self.render_characters)
         outfile.write(s)
         if mode != 'human':
