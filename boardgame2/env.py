@@ -286,7 +286,7 @@ class BoardGameEnv(gym.Env):
             action = self.illegal_equivalent_action
         if action == self.RESIGN:
             _, player = board_player_from_state(state)
-            return state, -player, True, {}
+            return state, float(-player), True, {}
         while True:
             state = self.get_next_state(state, action)
             winner = self.get_winner(state)

@@ -1,6 +1,8 @@
 import copy
 import itertools
 import numpy as np
+from gymnasium import spaces
+
 
 from .env import EMPTY
 from .env import BoardGameEnv
@@ -13,6 +15,7 @@ class ReversiEnv(BoardGameEnv):
         super().__init__(board_shape=board_shape,
             illegal_action_mode='resign', render_characters=render_characters,
             allow_pass=False, render_mode=render_mode)  # reversi does not allow pass
+        self.action_space = spaces.Discrete(self.board_size + 1, start=0)
 
     def reset(self, *, seed=None, return_info=True, options=None):
         super().reset(seed=seed, return_info=return_info, options=options)
