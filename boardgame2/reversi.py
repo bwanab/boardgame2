@@ -22,8 +22,8 @@ class ReversiEnv(BoardGameEnv):
 
         x, y = (s // 2 for s in self.board_shape)
         board, player = board_player_from_state(self.board)
-        board[x - 1][y - 1] = board[x][y] = 1
-        board[x - 1][y] = board[x][y - 1] = -1
+        board[x - 1][y - 1] = board[x][y] = -1
+        board[x - 1][y] = board[x][y - 1] = 1
         self.board[self.board_size] = player
         next_state = self.board
         if return_info:
